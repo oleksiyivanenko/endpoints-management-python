@@ -42,6 +42,7 @@ from __future__ import absolute_import
 from apitools.base.py import exceptions
 from datetime import datetime, timedelta
 from enum import Enum
+import httplib2
 import json
 import logging
 import os
@@ -123,9 +124,20 @@ _THREAD_CLASS = threading.Thread
 
 
 def _create_http_transport():
+    timeout = os.environ.get('ENDPOINTS_SERVICE_MANAGEMENT_TIMEOUT', None)
+    if timeout is not None:
+      try:
+        timeout = int(timeout)
+      except (TypeError, ValueError):
+        logger.warning(u'timeout is configured but has wrong value %s', timeout)
+        timeout = None
+
+    logger.info(u'_create_http_transport timeout=%s', timeout)
     additional_http_headers = {u"user-agent": USER_AGENT}
     do_logging = logger.level <= logging.DEBUG
+    http = httplib2.Http(timeout=timeout)
     return api_client.ServicecontrolV1(
+        http=http,
         additional_http_headers=additional_http_headers,
         log_request=do_logging,
         log_response=do_logging)
